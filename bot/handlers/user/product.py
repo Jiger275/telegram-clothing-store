@@ -1,5 +1,5 @@
 """
-Handler for product viewing and selection
+Handler для просмотра товаров и добавления в корзину
 """
 from typing import Optional
 from aiogram import Router, F
@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, FSInputFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.models.user import User
-from bot.services import product_service
+from bot.services import product_service, cart_service
 from bot.keyboards.user_keyboards import (
     get_product_card_keyboard,
     get_variant_selection_keyboard
@@ -18,7 +18,8 @@ from bot.texts.user_messages import (
     PRODUCT_OUT_OF_STOCK,
     SELECT_SIZE,
     SELECT_COLOR,
-    PRODUCT_NOT_AVAILABLE
+    PRODUCT_NOT_AVAILABLE,
+    ADDED_TO_CART_SUCCESS
 )
 from bot.utils.logger import setup_logger
 
@@ -266,26 +267,53 @@ async def add_to_cart(
         f"размер={size}, цвет={color}"
     )
 
-    # Проверяем доступность товара/варианта
-    is_available = await product_service.check_product_availability(
+    # Получаем товар
+    product = await product_service.get_product_by_id(
         session=session,
         product_id=product_id,
-        size=size,
-        color=color
+        with_variants=True
     )
 
-    if not is_available:
+    if not product or not product.is_active:
         await callback.answer(PRODUCT_NOT_AVAILABLE, show_alert=True)
         return
 
-    # TODO: Реализовать добавление в корзину в Этапе 5
-    # Пока просто уведомляем пользователя
-    await callback.answer("Товар добавлен в корзину! (функция будет реализована в следующем этапе)", show_alert=True)
+    # Если есть размер и цвет, ищем вариант
+    variant_id = None
+    if size and color:
+        variant = await product_service.get_variant_by_attributes(
+            session=session,
+            product_id=product_id,
+            size=size,
+            color=color
+        )
 
-    # Очищаем выбранные параметры
-    user_key = f"{user.telegram_id}:{product_id}"
-    user_selections.pop(f"{user_key}:size", None)
-    user_selections.pop(f"{user_key}:color", None)
+        if not variant or variant.quantity <= 0:
+            await callback.answer(PRODUCT_NOT_AVAILABLE, show_alert=True)
+            return
+
+        variant_id = variant.id
+
+    # Добавляем в корзину
+    try:
+        await cart_service.add_to_cart(
+            session=session,
+            user_id=user.id,
+            product_id=product_id,
+            variant_id=variant_id,
+            quantity=1
+        )
+
+        await callback.answer(ADDED_TO_CART_SUCCESS, show_alert=True)
+
+        # Очищаем выбранные параметры
+        user_key = f"{user.telegram_id}:{product_id}"
+        user_selections.pop(f"{user_key}:size", None)
+        user_selections.pop(f"{user_key}:color", None)
+
+    except Exception as e:
+        logger.error(f"Ошибка при добавлении товара в корзину: {e}")
+        await callback.answer("Произошла ошибка. Попробуйте позже.", show_alert=True)
 
 
 @router.callback_query(F.data == "noop")
