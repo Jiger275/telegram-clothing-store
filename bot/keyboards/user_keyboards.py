@@ -253,16 +253,53 @@ def get_variant_selection_keyboard(
     return InlineKeyboardMarkup(inline_keyboard=buttons)
 
 
-def get_cart_keyboard() -> InlineKeyboardMarkup:
+def get_cart_keyboard(has_items: bool = False) -> InlineKeyboardMarkup:
     """
-    Клавиатура для корзины (пока заглушка)
+    Клавиатура для корзины
+
+    Args:
+        has_items: Есть ли товары в корзине
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = []
+
+    if has_items:
+        buttons.append([
+            InlineKeyboardButton(text="📦 Оформить заказ", callback_data="checkout")
+        ])
+        buttons.append([
+            InlineKeyboardButton(text="🗑 Очистить корзину", callback_data="cart:clear")
+        ])
+
+    buttons.append([
+        InlineKeyboardButton(text="🛍 К каталогу", callback_data="catalog")
+    ])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_cart_item_keyboard(cart_item_id: int, quantity: int) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для управления товаром в корзине
+
+    Args:
+        cart_item_id: ID товара в корзине
+        quantity: Текущее количество
 
     Returns:
         InlineKeyboardMarkup
     """
     buttons = [
-        [InlineKeyboardButton(text="Очистить корзину", callback_data="cart_clear")],
-        [InlineKeyboardButton(text="Назад в меню", callback_data="main_menu")]
+        [
+            InlineKeyboardButton(text="➖", callback_data=f"cart:decrease:{cart_item_id}"),
+            InlineKeyboardButton(text=f"{quantity} шт.", callback_data="noop"),
+            InlineKeyboardButton(text="➕", callback_data=f"cart:increase:{cart_item_id}"),
+        ],
+        [
+            InlineKeyboardButton(text="🗑 Удалить", callback_data=f"cart:remove:{cart_item_id}")
+        ]
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
