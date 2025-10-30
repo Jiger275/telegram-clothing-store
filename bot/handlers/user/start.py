@@ -78,28 +78,6 @@ async def show_main_menu(
         await event.answer()
 
 
-@router.message(F.text == "Каталог")
-async def show_catalog(
-    message: Message,
-    user: User,
-    session: AsyncSession
-) -> None:
-    """
-    Показать каталог товаров (заглушка)
-
-    Args:
-        message: Сообщение от пользователя
-        user: Объект пользователя из БД
-        session: Сессия БД
-    """
-    logger.info(f"Пользователь {user.telegram_id} открыл каталог")
-
-    await message.answer(
-        text="Каталог товаров скоро будет доступен!",
-        reply_markup=get_main_menu_keyboard(is_admin=user.is_admin)
-    )
-
-
 @router.message(F.text == "Корзина")
 async def show_cart(
     message: Message,
