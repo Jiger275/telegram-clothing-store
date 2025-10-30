@@ -54,6 +54,20 @@ CART_EMPTY = "Ваша корзина пуста. Добавьте товары 
 
 CART_HEADER = "Ваша корзина:\n\n"
 
+CART_ITEM_FORMAT = """
+{name}
+{variant_info}
+Цена: {price} ₽ × {quantity} шт.
+Итого: {subtotal} ₽
+"""
+
+CART_TOTAL_FORMAT = "\n━━━━━━━━━━━━━━━\nОбщая сумма: {total} ₽"
+
+ADDED_TO_CART_SUCCESS = "✅ Товар добавлен в корзину!"
+CART_ITEM_REMOVED = "Товар удален из корзины"
+CART_CLEARED = "Корзина очищена"
+CART_ITEM_QUANTITY_UPDATED = "Количество обновлено"
+
 # Профиль
 PROFILE_INFO = """
 Ваш профиль:
