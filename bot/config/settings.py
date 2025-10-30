@@ -32,6 +32,12 @@ class Settings(BaseSettings):
         description="URL для подключения к базе данных"
     )
 
+    db_echo: bool = Field(
+        default=False,
+        alias="DB_ECHO",
+        description="Вывод SQL запросов в консоль"
+    )
+
     # Redis (опционально)
     redis_url: Optional[str] = Field(
         default=None,
@@ -116,6 +122,16 @@ class Settings(BaseSettings):
     def is_admin(self, telegram_id: int) -> bool:
         """Проверяет, является ли пользователь администратором"""
         return telegram_id in self.admin_telegram_ids
+
+    @property
+    def DATABASE_URL(self) -> str:
+        """Возвращает URL базы данных"""
+        return self.database_url
+
+    @property
+    def DB_ECHO(self) -> bool:
+        """Возвращает флаг вывода SQL запросов"""
+        return self.db_echo
 
 
 # Создаем глобальный экземпляр настроек

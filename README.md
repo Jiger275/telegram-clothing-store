@@ -111,11 +111,3 @@ alembic downgrade -1
 ```bash
 pytest
 ```
-
-## Лицензия
-
-MIT
-
-## Автор
-
-Разработано с использованием Claude Code
