@@ -78,3 +78,10 @@ async def drop_db() -> None:
 
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
+
+
+async def init_database() -> None:
+    """
+    Initialize database - alias for init_db for consistency with main.py
+    """
+    await init_db()

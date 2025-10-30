@@ -3,19 +3,35 @@
 """
 import sys
 from pathlib import Path
-from loguru import logger
+from loguru import logger as _logger
+
+# Флаг инициализации
+_initialized = False
 
 
-def setup_logger(log_level: str = "INFO", logs_dir: str = "logs"):
+def setup_logger(name: str = None, log_level: str = "INFO", logs_dir: str = "logs"):
     """
-    Настраивает логирование для приложения
+    Настраивает логирование для приложения или возвращает logger для модуля
 
     Args:
+        name: Имя модуля (опционально, для совместимости)
         log_level: Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         logs_dir: Директория для хранения логов
+
+    Returns:
+        Настроенный logger
     """
+    global _initialized
+
+    # Если уже инициализирован, просто возвращаем logger
+    if _initialized:
+        return _logger
+
+    # Инициализируем только один раз
+    _initialized = True
+
     # Удаляем стандартный обработчик
-    logger.remove()
+    _logger.remove()
 
     # Создаем директорию для логов, если её нет
     logs_path = Path(logs_dir)
@@ -38,7 +54,7 @@ def setup_logger(log_level: str = "INFO", logs_dir: str = "logs"):
     )
 
     # Добавляем вывод в консоль
-    logger.add(
+    _logger.add(
         sys.stderr,
         format=console_format,
         level=log_level,
@@ -48,7 +64,7 @@ def setup_logger(log_level: str = "INFO", logs_dir: str = "logs"):
     )
 
     # Добавляем вывод в файл (обычные логи)
-    logger.add(
+    _logger.add(
         logs_path / "bot.log",
         format=file_format,
         level=log_level,
@@ -61,7 +77,7 @@ def setup_logger(log_level: str = "INFO", logs_dir: str = "logs"):
     )
 
     # Добавляем отдельный файл для ошибок
-    logger.add(
+    _logger.add(
         logs_path / "errors.log",
         format=file_format,
         level="ERROR",
@@ -73,9 +89,10 @@ def setup_logger(log_level: str = "INFO", logs_dir: str = "logs"):
         encoding="utf-8"
     )
 
-    logger.info(f"Логирование настроено. Уровень: {log_level}")
-    return logger
+    _logger.info(f"Логирование настроено. Уровень: {log_level}")
+    return _logger
 
 
 # Экспортируем настроенный логгер
+logger = _logger
 __all__ = ["setup_logger", "logger"]
