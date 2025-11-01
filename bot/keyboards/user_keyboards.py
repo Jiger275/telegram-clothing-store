@@ -487,3 +487,72 @@ def get_cancel_checkout_keyboard() -> InlineKeyboardMarkup:
     ]
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_orders_list_keyboard(
+    orders: List,
+    current_page: int = 1,
+    total_pages: int = 1
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура со списком заказов
+
+    Args:
+        orders: Список заказов на текущей странице
+        current_page: Текущая страница
+        total_pages: Всего страниц
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = []
+
+    # Добавляем кнопки для каждого заказа
+    for order in orders:
+        buttons.append([
+            InlineKeyboardButton(
+                text=f"📦 Заказ №{order.order_number}",
+                callback_data=f"order:{order.id}"
+            )
+        ])
+
+    # Пагинация
+    if total_pages > 1:
+        pagination_row = []
+        if current_page > 1:
+            pagination_row.append(InlineKeyboardButton(
+                text="◀️",
+                callback_data=f"orders:page:{current_page - 1}"
+            ))
+        pagination_row.append(InlineKeyboardButton(
+            text=f"{current_page}/{total_pages}",
+            callback_data="noop"
+        ))
+        if current_page < total_pages:
+            pagination_row.append(InlineKeyboardButton(
+                text="▶️",
+                callback_data=f"orders:page:{current_page + 1}"
+            ))
+        buttons.append(pagination_row)
+
+    # Кнопка "В главное меню"
+    buttons.append([
+        InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")
+    ])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_order_details_keyboard() -> InlineKeyboardMarkup:
+    """
+    Клавиатура для детального просмотра заказа
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = [
+        [InlineKeyboardButton(text="⬅️ К списку заказов", callback_data="back_to_orders")],
+        [InlineKeyboardButton(text="🏠 Главное меню", callback_data="main_menu")]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

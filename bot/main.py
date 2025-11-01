@@ -15,7 +15,7 @@ from bot.database.engine import init_database
 from bot.utils.logger import setup_logger
 from bot.middlewares.db_middleware import DatabaseMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
-from bot.handlers.user import start, catalog, product, cart, order
+from bot.handlers.user import start, catalog, product, cart, order, profile
 
 
 # Настраиваем логирование
@@ -82,6 +82,7 @@ async def main() -> None:
         dp.include_router(cart.router)  # Обработчики корзины (более специфичные)
         dp.include_router(product.router)  # Обработчики товаров
         dp.include_router(catalog.router)  # Обработчики каталога
+        dp.include_router(profile.router)  # Обработчики профиля и заказов
         dp.include_router(start.router)  # Общие обработчики (менее специфичные)
 
         # Регистрируем события запуска и остановки
