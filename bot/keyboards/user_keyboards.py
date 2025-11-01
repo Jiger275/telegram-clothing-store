@@ -136,7 +136,9 @@ def get_products_keyboard(
 def get_product_card_keyboard(
     product_id: int,
     has_variants: bool = False,
-    category_id: Optional[int] = None
+    category_id: Optional[int] = None,
+    current_image: int = 0,
+    total_images: int = 1
 ) -> InlineKeyboardMarkup:
     """
     Клавиатура для карточки товара
@@ -145,11 +147,32 @@ def get_product_card_keyboard(
         product_id: ID товара
         has_variants: Есть ли варианты товара
         category_id: ID категории для кнопки "Назад"
+        current_image: Индекс текущего изображения (0-based)
+        total_images: Общее количество изображений
 
     Returns:
         InlineKeyboardMarkup
     """
     buttons = []
+
+    # Галерея фотографий (если больше одного фото)
+    if total_images > 1:
+        gallery_row = []
+        if current_image > 0:
+            gallery_row.append(InlineKeyboardButton(
+                text="◀️",
+                callback_data=f"product:{product_id}:photo:{current_image - 1}"
+            ))
+        gallery_row.append(InlineKeyboardButton(
+            text=f"📷 {current_image + 1}/{total_images}",
+            callback_data="noop"
+        ))
+        if current_image < total_images - 1:
+            gallery_row.append(InlineKeyboardButton(
+                text="▶️",
+                callback_data=f"product:{product_id}:photo:{current_image + 1}"
+            ))
+        buttons.append(gallery_row)
 
     # Если есть варианты, показываем кнопку выбора размера/цвета
     if has_variants:
@@ -315,5 +338,91 @@ def get_profile_keyboard() -> InlineKeyboardMarkup:
     buttons = [
         [InlineKeyboardButton(text="Назад в меню", callback_data="main_menu")]
     ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_product_card_inline_keyboard(
+    product_id: int,
+    has_variants: bool = False,
+    category_id: Optional[int] = None
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для карточки товара в каталоге (упрощенная версия)
+
+    Args:
+        product_id: ID товара
+        has_variants: Есть ли варианты товара
+        category_id: ID категории
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = []
+
+    # Кнопка добавления в корзину
+    if has_variants:
+        buttons.append([
+            InlineKeyboardButton(
+                text="🛒 Выбрать размер/цвет",
+                callback_data=f"product:{product_id}"
+            )
+        ])
+    else:
+        buttons.append([
+            InlineKeyboardButton(
+                text="🛒 Добавить в корзину",
+                callback_data=f"add_to_cart:{product_id}"
+            )
+        ])
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_pagination_keyboard(
+    category_id: int,
+    current_page: int,
+    total_pages: int,
+    parent_id: Optional[int] = None
+) -> InlineKeyboardMarkup:
+    """
+    Клавиатура для пагинации товаров
+
+    Args:
+        category_id: ID категории
+        current_page: Текущая страница
+        total_pages: Всего страниц
+        parent_id: ID родительской категории
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = []
+
+    # Пагинация
+    if total_pages > 1:
+        pagination_row = []
+        if current_page > 1:
+            pagination_row.append(InlineKeyboardButton(
+                text="◀️ Предыдущая",
+                callback_data=f"category:{category_id}:page:{current_page - 1}"
+            ))
+        if current_page < total_pages:
+            pagination_row.append(InlineKeyboardButton(
+                text="Следующая ▶️",
+                callback_data=f"category:{category_id}:page:{current_page + 1}"
+            ))
+        if pagination_row:
+            buttons.append(pagination_row)
+
+    # Кнопка "Назад к категориям"
+    if parent_id is not None:
+        buttons.append([
+            InlineKeyboardButton(text="⬅️ Назад", callback_data=f"category:{parent_id}")
+        ])
+    else:
+        buttons.append([
+            InlineKeyboardButton(text="🏠 К категориям", callback_data="catalog")
+        ])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)

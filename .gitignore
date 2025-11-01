@@ -46,6 +46,11 @@ answer.md
 todo.md
 push.md
 STAGE*_COMPLETED.md
+STAGE_4_IMPLEMENTATION.md
+STAGE_4_UPDATE.md
+TESTS_SUMMARY.md
+SETUP_INSTRUCTIONS.md
+clear_database.py
 
 # Database
 *.db

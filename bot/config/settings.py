@@ -71,6 +71,13 @@ class Settings(BaseSettings):
         description="Директория для логов"
     )
 
+    # Настройки каталога
+    products_per_page: int = Field(
+        default=3,
+        alias="PRODUCTS_PER_PAGE",
+        description="Количество карточек товаров на одну страницу (3, 6, 10 и т.д.)"
+    )
+
     # Настройки модели Pydantic
     model_config = SettingsConfigDict(
         env_file=".env",

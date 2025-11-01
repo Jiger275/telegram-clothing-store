@@ -3,7 +3,7 @@ Handler для просмотра товаров и добавления в ко
 """
 from typing import Optional
 from aiogram import Router, F
-from aiogram.types import CallbackQuery, FSInputFile
+from aiogram.types import CallbackQuery, FSInputFile, InputMediaPhoto
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.models.user import User
@@ -48,7 +48,7 @@ async def show_product(
         user: Объект пользователя из БД
         session: Сессия БД
     """
-    # Парсим callback data: product:id или product:id:action
+    # Парсим callback data: product:id или product:id:action или product:id:action:value
     parts = callback.data.split(":")
     product_id = int(parts[1])
     action = parts[2] if len(parts) > 2 else None
@@ -57,6 +57,7 @@ async def show_product(
 
     # Обрабатываем различные действия
     if action == "select_variant":
+        # Для этого действия не нужно дополнительное подтверждение
         await show_variant_selection(callback, user, session, product_id)
         return
     elif action == "size":
@@ -65,6 +66,35 @@ async def show_product(
     elif action == "color":
         await handle_color_selection(callback, user, session, product_id, parts[3])
         return
+    elif action == "photo":
+        # Переключение фотографии
+        photo_index = int(parts[3])
+        await show_product_with_photo(callback, user, session, product_id, photo_index)
+        return
+
+    # Показываем первое фото по умолчанию
+    await show_product_with_photo(callback, user, session, product_id, photo_index=0)
+
+
+async def show_product_with_photo(
+    callback: CallbackQuery,
+    user: User,
+    session: AsyncSession,
+    product_id: int,
+    photo_index: int = 0
+) -> None:
+    """
+    Показать карточку товара с определенным фото
+
+    Args:
+        callback: Callback query
+        user: Объект пользователя из БД
+        session: Сессия БД
+        product_id: ID товара
+        photo_index: Индекс фото для отображения
+    """
+    # Сразу подтверждаем получение callback, чтобы избежать timeout
+    await callback.answer()
 
     # Получаем товар
     product = await product_service.get_product_by_id(
@@ -102,36 +132,71 @@ async def show_product(
     # Проверяем наличие вариантов
     has_variants = len(product.variants) > 0
 
+    # Количество изображений
+    total_images = len(product.images) if product.images else 0
+
+    # Проверяем корректность индекса
+    if photo_index < 0:
+        photo_index = 0
+    elif photo_index >= total_images:
+        photo_index = total_images - 1 if total_images > 0 else 0
+
     keyboard = get_product_card_keyboard(
         product_id=product_id,
         has_variants=has_variants,
-        category_id=product.category_id
+        category_id=product.category_id,
+        current_image=photo_index,
+        total_images=total_images
     )
 
     # Отправляем с фото, если есть
     if product.images and len(product.images) > 0:
-        # Путь к первому изображению
-        image_path = f"media/products/{product.images[0]}"
+        # Путь к изображению по индексу
+        image_path = f"media/products/{product.images[photo_index]}"
 
         try:
             photo = FSInputFile(image_path)
-            # Удаляем предыдущее сообщение
-            await callback.message.delete()
-            # Отправляем новое с фото
-            await callback.message.answer_photo(
-                photo=photo,
-                caption=text,
-                reply_markup=keyboard
-            )
+
+            # Если сообщение уже содержит фото, обновляем его
+            if callback.message.photo:
+                try:
+                    media = InputMediaPhoto(media=photo, caption=text)
+                    await callback.message.edit_media(
+                        media=media,
+                        reply_markup=keyboard
+                    )
+                except Exception as e:
+                    logger.error(f"Ошибка при обновлении медиа: {e}")
+                    # Если не получилось обновить, удаляем и создаем новое
+                    await callback.message.delete()
+                    await callback.message.answer_photo(
+                        photo=photo,
+                        caption=text,
+                        reply_markup=keyboard
+                    )
+            else:
+                # Если сообщение без фото, удаляем его и создаем новое с фото
+                await callback.message.delete()
+                await callback.message.answer_photo(
+                    photo=photo,
+                    caption=text,
+                    reply_markup=keyboard
+                )
         except Exception as e:
             logger.error(f"Ошибка при загрузке изображения {image_path}: {e}")
             # Если ошибка с изображением, отправляем просто текст
-            await callback.message.edit_text(text=text, reply_markup=keyboard)
+            try:
+                await callback.message.edit_text(text=text, reply_markup=keyboard)
+            except:
+                await callback.message.delete()
+                await callback.message.answer(text=text, reply_markup=keyboard)
     else:
         # Без изображения
-        await callback.message.edit_text(text=text, reply_markup=keyboard)
-
-    await callback.answer()
+        try:
+            await callback.message.edit_text(text=text, reply_markup=keyboard)
+        except:
+            await callback.message.delete()
+            await callback.message.answer(text=text, reply_markup=keyboard)
 
 
 async def show_variant_selection(

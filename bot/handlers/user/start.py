@@ -78,26 +78,8 @@ async def show_main_menu(
         await event.answer()
 
 
-@router.message(F.text == "Корзина")
-async def show_cart(
-    message: Message,
-    user: User,
-    session: AsyncSession
-) -> None:
-    """
-    Показать корзину (заглушка)
-
-    Args:
-        message: Сообщение от пользователя
-        user: Объект пользователя из БД
-        session: Сессия БД
-    """
-    logger.info(f"Пользователь {user.telegram_id} открыл корзину")
-
-    await message.answer(
-        text="Ваша корзина пуста.",
-        reply_markup=get_main_menu_keyboard(is_admin=user.is_admin)
-    )
+# Обработчик для корзины перемещён в bot/handlers/user/cart.py
+# Если вы видите это сообщение, проверьте, что cart.router зарегистрирован в основном приложении
 
 
 @router.message(F.text == "Мои заказы")

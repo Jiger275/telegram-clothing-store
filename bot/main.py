@@ -77,10 +77,11 @@ async def main() -> None:
         dp.update.middleware(UserMiddleware())
 
         # Регистрируем роутеры с handlers
-        dp.include_router(start.router)
-        dp.include_router(catalog.router)
-        dp.include_router(product.router)
-        dp.include_router(cart.router)
+        # ВАЖНО: Порядок имеет значение! Более специфичные handlers должны быть первыми
+        dp.include_router(cart.router)  # Обработчики корзины (более специфичные)
+        dp.include_router(product.router)  # Обработчики товаров
+        dp.include_router(catalog.router)  # Обработчики каталога
+        dp.include_router(start.router)  # Общие обработчики (менее специфичные)
 
         # Регистрируем события запуска и остановки
         dp.startup.register(on_startup)

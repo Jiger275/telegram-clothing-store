@@ -51,6 +51,9 @@ async def get_products_by_category(
     query = query.offset(offset).limit(page_size)
     query = query.order_by(Product.created_at.desc())
 
+    # Load variants for checking if product has variants
+    query = query.options(selectinload(Product.variants))
+
     # Execute query
     result = await session.execute(query)
     products = result.scalars().all()
