@@ -16,6 +16,7 @@ from bot.utils.logger import setup_logger
 from bot.middlewares.db_middleware import DatabaseMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
 from bot.handlers.user import start, catalog, product, cart, order, profile
+from bot.handlers.admin import panel, categories
 
 
 # Настраиваем логирование
@@ -78,6 +79,12 @@ async def main() -> None:
 
         # Регистрируем роутеры с handlers
         # ВАЖНО: Порядок имеет значение! Более специфичные handlers должны быть первыми
+
+        # Админские handlers (должны быть первыми для приоритета)
+        dp.include_router(categories.router)  # Управление категориями
+        dp.include_router(panel.router)  # Главная админ-панель
+
+        # Пользовательские handlers
         dp.include_router(order.router)  # Обработчики оформления заказа (FSM)
         dp.include_router(cart.router)  # Обработчики корзины (более специфичные)
         dp.include_router(product.router)  # Обработчики товаров

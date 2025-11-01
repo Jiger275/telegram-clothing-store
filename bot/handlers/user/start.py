@@ -8,7 +8,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.models.user import User
 from bot.keyboards.user_keyboards import get_main_menu_keyboard
+from bot.keyboards.admin_keyboards import get_admin_main_menu
 from bot.texts.user_messages import WELCOME_MESSAGE, MAIN_MENU
+from bot.texts import admin_messages
 from bot.utils.logger import setup_logger
 
 
@@ -169,7 +171,7 @@ async def show_admin_panel(
     session: AsyncSession
 ) -> None:
     """
-    Показать админ-панель (заглушка, доступна только администраторам)
+    Показать админ-панель (доступна только администраторам)
 
     Args:
         message: Сообщение от пользователя
@@ -191,6 +193,6 @@ async def show_admin_panel(
     logger.info(f"Администратор {user.telegram_id} открыл админ-панель")
 
     await message.answer(
-        text="Админ-панель скоро будет доступна!",
-        reply_markup=get_main_menu_keyboard(is_admin=user.is_admin)
+        text=admin_messages.ADMIN_PANEL_WELCOME,
+        reply_markup=get_admin_main_menu()
     )

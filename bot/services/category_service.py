@@ -35,6 +35,8 @@ async def get_all_categories(
     if active_only:
         query = query.where(Category.is_active == True)
 
+    # Загружаем родительскую категорию заранее
+    query = query.options(selectinload(Category.parent))
     query = query.order_by(Category.name)
 
     result = await session.execute(query)
@@ -65,6 +67,9 @@ async def get_category_by_id(
         Category object or None if not found
     """
     query = select(Category).where(Category.id == category_id)
+
+    # Всегда загружаем родительскую категорию
+    query = query.options(selectinload(Category.parent))
 
     if with_subcategories:
         query = query.options(selectinload(Category.subcategories))
