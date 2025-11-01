@@ -426,3 +426,64 @@ def get_pagination_keyboard(
         ])
 
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_delivery_type_keyboard() -> InlineKeyboardMarkup:
+    """
+    Клавиатура для выбора типа доставки
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = [
+        [InlineKeyboardButton(text="🚚 Курьер", callback_data="delivery:courier")],
+        [InlineKeyboardButton(text="🏪 Самовывоз", callback_data="delivery:pickup")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="checkout:back")]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_skip_comment_keyboard() -> InlineKeyboardMarkup:
+    """
+    Клавиатура для пропуска комментария
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = [
+        [InlineKeyboardButton(text="⏩ Пропустить", callback_data="checkout:skip_comment")],
+        [InlineKeyboardButton(text="⬅️ Назад", callback_data="checkout:back")]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_order_confirmation_keyboard() -> InlineKeyboardMarkup:
+    """
+    Клавиатура для подтверждения заказа
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = [
+        [InlineKeyboardButton(text="✅ Подтвердить заказ", callback_data="checkout:confirm")],
+        [InlineKeyboardButton(text="✏️ Изменить данные", callback_data="checkout:edit")],
+        [InlineKeyboardButton(text="❌ Отменить", callback_data="checkout:cancel")]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+def get_cancel_checkout_keyboard() -> InlineKeyboardMarkup:
+    """
+    Клавиатура с кнопкой отмены оформления
+
+    Returns:
+        InlineKeyboardMarkup
+    """
+    buttons = [
+        [InlineKeyboardButton(text="❌ Отменить оформление", callback_data="checkout:cancel")]
+    ]
+
+    return InlineKeyboardMarkup(inline_keyboard=buttons)

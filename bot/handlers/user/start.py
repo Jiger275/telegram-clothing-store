@@ -18,6 +18,32 @@ logger = setup_logger(__name__)
 router = Router(name="start")
 
 
+async def safe_edit_message(message, text: str, reply_markup=None):
+    """
+    Безопасное редактирование сообщения с обработкой различных типов
+
+    Args:
+        message: Сообщение для редактирования
+        text: Новый текст
+        reply_markup: Новая клавиатура
+    """
+    try:
+        # Если сообщение содержит фото, редактируем caption
+        if message.photo:
+            await message.edit_caption(caption=text, reply_markup=reply_markup)
+        else:
+            # Иначе редактируем текст
+            await message.edit_text(text=text, reply_markup=reply_markup)
+    except Exception as e:
+        logger.error(f"Ошибка при редактировании сообщения: {e}")
+        # Если не получилось отредактировать, удаляем и создаём новое
+        try:
+            await message.delete()
+            await message.answer(text=text, reply_markup=reply_markup)
+        except Exception as delete_error:
+            logger.error(f"Ошибка при удалении/создании сообщения: {delete_error}")
+
+
 @router.message(CommandStart())
 async def cmd_start(
     message: Message,
@@ -67,7 +93,8 @@ async def show_main_menu(
             reply_markup=keyboard
         )
     else:  # CallbackQuery
-        await event.message.edit_text(
+        await safe_edit_message(
+            event.message,
             text=MAIN_MENU,
             reply_markup=None
         )

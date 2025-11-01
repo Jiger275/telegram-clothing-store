@@ -34,6 +34,32 @@ router = Router(name="product")
 user_selections = {}
 
 
+async def safe_edit_message(message, text: str, reply_markup=None):
+    """
+    Безопасное редактирование сообщения с обработкой различных типов
+
+    Args:
+        message: Сообщение для редактирования
+        text: Новый текст
+        reply_markup: Новая клавиатура
+    """
+    try:
+        # Если сообщение содержит фото, редактируем caption
+        if message.photo:
+            await message.edit_caption(caption=text, reply_markup=reply_markup)
+        else:
+            # Иначе редактируем текст
+            await message.edit_text(text=text, reply_markup=reply_markup)
+    except Exception as e:
+        logger.error(f"Ошибка при редактировании сообщения: {e}")
+        # Если не получилось отредактировать, удаляем и создаём новое
+        try:
+            await message.delete()
+            await message.answer(text=text, reply_markup=reply_markup)
+        except Exception as delete_error:
+            logger.error(f"Ошибка при удалении/создании сообщения: {delete_error}")
+
+
 @router.callback_query(F.data.startswith("product:"))
 async def show_product(
     callback: CallbackQuery,
@@ -185,18 +211,10 @@ async def show_product_with_photo(
         except Exception as e:
             logger.error(f"Ошибка при загрузке изображения {image_path}: {e}")
             # Если ошибка с изображением, отправляем просто текст
-            try:
-                await callback.message.edit_text(text=text, reply_markup=keyboard)
-            except:
-                await callback.message.delete()
-                await callback.message.answer(text=text, reply_markup=keyboard)
+            await safe_edit_message(callback.message, text=text, reply_markup=keyboard)
     else:
         # Без изображения
-        try:
-            await callback.message.edit_text(text=text, reply_markup=keyboard)
-        except:
-            await callback.message.delete()
-            await callback.message.answer(text=text, reply_markup=keyboard)
+        await safe_edit_message(callback.message, text=text, reply_markup=keyboard)
 
 
 async def show_variant_selection(
@@ -245,7 +263,7 @@ async def show_variant_selection(
         selected_color=selected_color
     )
 
-    await callback.message.edit_text(text=text, reply_markup=keyboard)
+    await safe_edit_message(callback.message, text=text, reply_markup=keyboard)
     await callback.answer()
 
 

@@ -15,7 +15,7 @@ from bot.database.engine import init_database
 from bot.utils.logger import setup_logger
 from bot.middlewares.db_middleware import DatabaseMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
-from bot.handlers.user import start, catalog, product, cart
+from bot.handlers.user import start, catalog, product, cart, order
 
 
 # Настраиваем логирование
@@ -78,6 +78,7 @@ async def main() -> None:
 
         # Регистрируем роутеры с handlers
         # ВАЖНО: Порядок имеет значение! Более специфичные handlers должны быть первыми
+        dp.include_router(order.router)  # Обработчики оформления заказа (FSM)
         dp.include_router(cart.router)  # Обработчики корзины (более специфичные)
         dp.include_router(product.router)  # Обработчики товаров
         dp.include_router(catalog.router)  # Обработчики каталога

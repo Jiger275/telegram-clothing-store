@@ -25,6 +25,32 @@ logger = setup_logger(__name__)
 router = Router(name="cart")
 
 
+async def safe_edit_message(message, text: str, reply_markup=None):
+    """
+    Безопасное редактирование сообщения с обработкой различных типов
+
+    Args:
+        message: Сообщение для редактирования
+        text: Новый текст
+        reply_markup: Новая клавиатура
+    """
+    try:
+        # Если сообщение содержит фото, редактируем caption
+        if message.photo:
+            await message.edit_caption(caption=text, reply_markup=reply_markup)
+        else:
+            # Иначе редактируем текст
+            await message.edit_text(text=text, reply_markup=reply_markup)
+    except Exception as e:
+        logger.error(f"Ошибка при редактировании сообщения: {e}")
+        # Если не получилось отредактировать, удаляем и создаём новое
+        try:
+            await message.delete()
+            await message.answer(text=text, reply_markup=reply_markup)
+        except Exception as delete_error:
+            logger.error(f"Ошибка при удалении/создании сообщения: {delete_error}")
+
+
 @router.message(F.text == "Корзина")
 async def show_cart_message(
     message: Message,
@@ -83,7 +109,7 @@ async def show_cart(
     if not cart_items:
         keyboard = get_cart_keyboard(has_items=False)
         if is_callback:
-            await message.edit_text(text=CART_EMPTY, reply_markup=keyboard)
+            await safe_edit_message(message, text=CART_EMPTY, reply_markup=keyboard)
         else:
             await message.answer(text=CART_EMPTY, reply_markup=keyboard)
         return
@@ -116,7 +142,7 @@ async def show_cart(
     keyboard = get_cart_keyboard(has_items=True)
 
     if is_callback:
-        await message.edit_text(text=text, reply_markup=keyboard)
+        await safe_edit_message(message, text=text, reply_markup=keyboard)
     else:
         await message.answer(text=text, reply_markup=keyboard)
 

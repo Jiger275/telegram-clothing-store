@@ -38,6 +38,32 @@ router = Router(name="catalog")
 product_card_messages: Dict[int, Dict[int, Dict]] = {}
 
 
+async def safe_edit_message(message, text: str, reply_markup=None):
+    """
+    Безопасное редактирование сообщения с обработкой различных типов
+
+    Args:
+        message: Сообщение для редактирования
+        text: Новый текст
+        reply_markup: Новая клавиатура
+    """
+    try:
+        # Если сообщение содержит фото, редактируем caption
+        if message.photo:
+            await message.edit_caption(caption=text, reply_markup=reply_markup)
+        else:
+            # Иначе редактируем текст
+            await message.edit_text(text=text, reply_markup=reply_markup)
+    except Exception as e:
+        logger.error(f"Ошибка при редактировании сообщения: {e}")
+        # Если не получилось отредактировать, удаляем и создаём новое
+        try:
+            await message.delete()
+            await message.answer(text=text, reply_markup=reply_markup)
+        except Exception as delete_error:
+            logger.error(f"Ошибка при удалении/создании сообщения: {delete_error}")
+
+
 @router.message(F.text == "Каталог")
 @router.callback_query(F.data == "catalog")
 async def show_catalog(
@@ -65,7 +91,7 @@ async def show_catalog(
         if isinstance(event, Message):
             await event.answer(text=text, reply_markup=keyboard)
         else:
-            await event.message.edit_text(text=text)
+            await safe_edit_message(event.message, text=text, reply_markup=None)
             await event.answer()
         return
 
@@ -75,7 +101,7 @@ async def show_catalog(
     if isinstance(event, Message):
         await event.answer(text=text, reply_markup=keyboard)
     else:
-        await event.message.edit_text(text=text, reply_markup=keyboard)
+        await safe_edit_message(event.message, text=text, reply_markup=keyboard)
         await event.answer()
 
 
@@ -128,7 +154,7 @@ async def show_category(
             parent_id=category.parent_id
         )
 
-        await callback.message.edit_text(text=text, reply_markup=keyboard)
+        await safe_edit_message(callback.message, text=text, reply_markup=keyboard)
         await callback.answer()
     else:
         # Если подкатегорий нет, показываем товары
@@ -175,7 +201,7 @@ async def show_products_in_category(
             parent_id=category.parent_id
         )
 
-        await callback.message.edit_text(text=text, reply_markup=keyboard)
+        await safe_edit_message(callback.message, text=text, reply_markup=keyboard)
         await callback.answer()
         return
 
