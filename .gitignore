@@ -52,6 +52,9 @@ TESTS_SUMMARY.md
 SETUP_INSTRUCTIONS.md
 ADMIN_PANEL_USAGE.md
 clear_database.py
+stop_bot_sessions.py
+CONFLICT_RESOLUTION.md
+BOT_MANAGEMENT.md
 
 # Database
 *.db

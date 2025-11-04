@@ -14,6 +14,35 @@ from bot.utils.logger import setup_logger
 logger = setup_logger(__name__)
 
 
+async def get_category_with_children_ids(
+    session: AsyncSession,
+    category_id: int
+) -> List[int]:
+    """
+    Get category ID and all its children IDs recursively
+
+    Args:
+        session: Database session
+        category_id: Parent category ID
+
+    Returns:
+        List of category IDs (including the parent)
+    """
+    category_ids = [category_id]
+
+    # Получаем все дочерние категории
+    query = select(Category).where(Category.parent_id == category_id)
+    result = await session.execute(query)
+    children = result.scalars().all()
+
+    # Рекурсивно добавляем ID всех дочерних категорий
+    for child in children:
+        child_ids = await get_category_with_children_ids(session, child.id)
+        category_ids.extend(child_ids)
+
+    return category_ids
+
+
 async def get_all_categories(
     session: AsyncSession,
     parent_id: Optional[int] = None,
@@ -213,3 +242,25 @@ async def count_products_in_category(
     logger.debug(f"Category {category_id} has {count} products")
 
     return count
+
+
+async def get_active_categories(session: AsyncSession) -> List[Category]:
+    """
+    Get all active categories (for admin product creation)
+
+    Args:
+        session: Database session
+
+    Returns:
+        List of active Category objects
+    """
+    query = select(Category).where(Category.is_active == True)
+    query = query.options(selectinload(Category.parent))
+    query = query.order_by(Category.name)
+
+    result = await session.execute(query)
+    categories = result.scalars().all()
+
+    logger.debug(f"Found {len(categories)} active categories")
+
+    return list(categories)

@@ -35,5 +35,8 @@ class ProductStates(StatesGroup):
     # Редактирование товара
     editing_name = State()
     editing_description = State()
+    editing_category = State()  # Редактирование категории
     editing_price = State()
+    editing_discount = State()  # Редактирование скидки
     editing_images = State()
+    adding_image = State()  # Добавление фото к существующему товару

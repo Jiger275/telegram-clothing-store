@@ -9,6 +9,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.exceptions import TelegramConflictError
 
 from bot.config.settings import settings
 from bot.database.engine import init_database
@@ -16,7 +17,7 @@ from bot.utils.logger import setup_logger
 from bot.middlewares.db_middleware import DatabaseMiddleware
 from bot.middlewares.user_middleware import UserMiddleware
 from bot.handlers.user import start, catalog, product, cart, order, profile
-from bot.handlers.admin import panel, categories
+from bot.handlers.admin import panel, categories, products
 
 
 # Настраиваем логирование
@@ -81,6 +82,7 @@ async def main() -> None:
         # ВАЖНО: Порядок имеет значение! Более специфичные handlers должны быть первыми
 
         # Админские handlers (должны быть первыми для приоритета)
+        dp.include_router(products.router)  # Управление товарами
         dp.include_router(categories.router)  # Управление категориями
         dp.include_router(panel.router)  # Главная админ-панель
 
@@ -104,6 +106,16 @@ async def main() -> None:
             drop_pending_updates=True  # Пропускаем накопившиеся обновления
         )
 
+    except TelegramConflictError as e:
+        logger.error(
+            "❌ ОШИБКА: Конфликт Telegram - другой экземпляр бота уже запущен!\n"
+            "Решение:\n"
+            "  1. Остановите другой экземпляр бота (возможно, запущен на другой машине или в другом терминале)\n"
+            "  2. Убедитесь, что используете уникальный токен бота\n"
+            "  3. Подождите несколько секунд и попробуйте снова\n"
+            f"Детали ошибки: {e}"
+        )
+        sys.exit(1)
     except Exception as e:
         logger.exception(f"Критическая ошибка при запуске бота: {e}")
         sys.exit(1)

@@ -43,6 +43,8 @@ async def callback_categories_menu(callback: CallbackQuery):
     """
     Показать главное меню управления категориями
     """
+    logger.info(f"Админ {callback.from_user.id} ({callback.from_user.username}) открыл меню управления категориями")
+
     await callback.message.edit_text(
         text=admin_messages.CATEGORIES_MENU,
         reply_markup=get_categories_menu()
@@ -62,6 +64,8 @@ async def callback_category_list(
     """
     # Извлекаем номер страницы из callback_data
     page = int(callback.data.split(":")[-1])
+
+    logger.info(f"Админ {callback.from_user.id} просматривает список категорий (страница {page})")
 
     # Получаем все категории (включая неактивные для админа)
     all_categories = await get_all_categories(
@@ -131,8 +135,11 @@ async def callback_category_view(
     """
     category_id = int(callback.data.split(":")[-1])
 
+    logger.info(f"Админ {callback.from_user.id} просматривает категорию ID={category_id}")
+
     category = await get_category_by_id(session, category_id)
     if not category:
+        logger.warning(f"Категория ID={category_id} не найдена (запрос от админа {callback.from_user.id})")
         await callback.answer(admin_messages.CATEGORY_NOT_FOUND, show_alert=True)
         return
 
@@ -155,6 +162,8 @@ async def callback_category_add_start(callback: CallbackQuery, state: FSMContext
     """
     Начать создание новой категории
     """
+    logger.info(f"Админ {callback.from_user.id} начал создание новой категории")
+
     await state.set_state(CategoryStates.waiting_for_name)
 
     await callback.message.edit_text(
@@ -171,12 +180,16 @@ async def process_category_name(message: Message, state: FSMContext):
     """
     name = message.text.strip()
 
+    logger.debug(f"Админ {message.from_user.id} ввел название категории: '{name}'")
+
     # Валидация
     if len(name) < 2:
+        logger.warning(f"Админ {message.from_user.id} ввел слишком короткое название категории: '{name}'")
         await message.answer(admin_messages.CATEGORY_NAME_TOO_SHORT)
         return
 
     if len(name) > 100:
+        logger.warning(f"Админ {message.from_user.id} ввел слишком длинное название категории (длина: {len(name)})")
         await message.answer(admin_messages.CATEGORY_NAME_TOO_LONG)
         return
 
@@ -257,7 +270,10 @@ async def process_category_parent(
         await session.commit()
         await session.refresh(new_category)
 
-        logger.info(f"Создана новая категория: {name} (id={new_category.id})")
+        logger.info(
+            f"✅ Админ {callback.from_user.id} создал категорию: '{name}' (ID={new_category.id}, "
+            f"parent_id={parent_id}, description={'есть' if description else 'нет'})"
+        )
 
         await callback.message.edit_text(
             text=admin_messages.CATEGORY_CREATED.format(name=name),
@@ -268,7 +284,7 @@ async def process_category_parent(
         await state.clear()
 
     except Exception as e:
-        logger.exception(f"Ошибка при создании категории: {e}")
+        logger.exception(f"❌ ОШИБКА: Админ {callback.from_user.id} не смог создать категорию '{name}': {e}")
         await callback.message.edit_text(
             text=admin_messages.ERROR_GENERIC,
             reply_markup=get_categories_menu()
@@ -291,8 +307,11 @@ async def callback_category_edit_name_start(
     """
     category_id = int(callback.data.split(":")[-1])
 
+    logger.info(f"Админ {callback.from_user.id} начал редактирование названия категории ID={category_id}")
+
     category = await get_category_by_id(session, category_id)
     if not category:
+        logger.warning(f"Категория ID={category_id} не найдена при попытке редактирования")
         await callback.answer(admin_messages.CATEGORY_NOT_FOUND, show_alert=True)
         return
 
@@ -333,6 +352,10 @@ async def process_category_name_edit(
 
     # Обновляем название
     try:
+        # Получаем старое название для логирования
+        old_category = await get_category_by_id(session, category_id)
+        old_name = old_category.name if old_category else "Unknown"
+
         await session.execute(
             update(Category)
             .where(Category.id == category_id)
@@ -340,7 +363,7 @@ async def process_category_name_edit(
         )
         await session.commit()
 
-        logger.info(f"Обновлено название категории {category_id}: {new_name}")
+        logger.info(f"✅ Админ {message.from_user.id} изменил название категории ID={category_id}: '{old_name}' → '{new_name}'")
 
         await message.answer(
             text=admin_messages.CATEGORY_NAME_UPDATED.format(new_name=new_name),
@@ -350,7 +373,7 @@ async def process_category_name_edit(
         await state.clear()
 
     except Exception as e:
-        logger.exception(f"Ошибка при обновлении названия категории: {e}")
+        logger.exception(f"❌ ОШИБКА: Не удалось обновить название категории ID={category_id}: {e}")
         await message.answer(admin_messages.ERROR_GENERIC)
         await state.clear()
 
@@ -521,6 +544,7 @@ async def callback_category_activate(
 
     category = await get_category_by_id(session, category_id)
     if not category:
+        logger.warning(f"Попытка активации несуществующей категории ID={category_id}")
         await callback.answer(admin_messages.CATEGORY_NOT_FOUND, show_alert=True)
         return
 
@@ -532,7 +556,7 @@ async def callback_category_activate(
         )
         await session.commit()
 
-        logger.info(f"Категория {category_id} активирована")
+        logger.info(f"✅ Админ {callback.from_user.id} АКТИВИРОВАЛ категорию '{category.name}' (ID={category_id})")
 
         await callback.message.edit_text(
             text=admin_messages.CATEGORY_ACTIVATED.format(name=category.name),
@@ -540,7 +564,7 @@ async def callback_category_activate(
         )
 
     except Exception as e:
-        logger.exception(f"Ошибка при активации категории: {e}")
+        logger.exception(f"❌ ОШИБКА при активации категории ID={category_id}: {e}")
         await callback.answer(admin_messages.ERROR_GENERIC, show_alert=True)
 
     await callback.answer()
@@ -558,6 +582,7 @@ async def callback_category_deactivate(
 
     category = await get_category_by_id(session, category_id)
     if not category:
+        logger.warning(f"Попытка деактивации несуществующей категории ID={category_id}")
         await callback.answer(admin_messages.CATEGORY_NOT_FOUND, show_alert=True)
         return
 
@@ -569,7 +594,7 @@ async def callback_category_deactivate(
         )
         await session.commit()
 
-        logger.info(f"Категория {category_id} деактивирована")
+        logger.info(f"⚠️ Админ {callback.from_user.id} ДЕАКТИВИРОВАЛ категорию '{category.name}' (ID={category_id})")
 
         await callback.message.edit_text(
             text=admin_messages.CATEGORY_DEACTIVATED.format(name=category.name),
@@ -577,7 +602,7 @@ async def callback_category_deactivate(
         )
 
     except Exception as e:
-        logger.exception(f"Ошибка при деактивации категории: {e}")
+        logger.exception(f"❌ ОШИБКА при деактивации категории ID={category_id}: {e}")
         await callback.answer(admin_messages.ERROR_GENERIC, show_alert=True)
 
     await callback.answer()
@@ -639,18 +664,25 @@ async def callback_category_delete(
 
     category = await get_category_by_id(session, category_id)
     if not category:
+        logger.warning(f"Попытка удаления несуществующей категории ID={category_id}")
         await callback.answer(admin_messages.CATEGORY_NOT_FOUND, show_alert=True)
         return
 
     category_name = category.name
 
     try:
+        # Подсчитываем количество товаров для логирования
+        products_count = await count_products_in_category(session, category_id)
+
         await session.execute(
             delete(Category).where(Category.id == category_id)
         )
         await session.commit()
 
-        logger.info(f"Категория {category_id} ({category_name}) удалена")
+        logger.warning(
+            f"🗑️ Админ {callback.from_user.id} УДАЛИЛ категорию '{category_name}' "
+            f"(ID={category_id}, товаров было: {products_count})"
+        )
 
         await callback.message.edit_text(
             text=admin_messages.CATEGORY_DELETED.format(name=category_name),
@@ -658,7 +690,7 @@ async def callback_category_delete(
         )
 
     except Exception as e:
-        logger.exception(f"Ошибка при удалении категории: {e}")
+        logger.exception(f"❌ ОШИБКА при удалении категории ID={category_id} ('{category_name}'): {e}")
         await callback.message.edit_text(
             text=admin_messages.CATEGORY_DELETE_ERROR,
             reply_markup=get_categories_menu()

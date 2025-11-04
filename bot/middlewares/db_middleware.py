@@ -5,7 +5,7 @@ from typing import Any, Awaitable, Callable, Dict
 
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject
-from aiogram.exceptions import TelegramForbiddenError
+from aiogram.exceptions import TelegramForbiddenError, TelegramBadRequest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from bot.database.engine import async_session_maker
@@ -61,6 +61,25 @@ class DatabaseMiddleware(BaseMiddleware):
                 logger.debug("Пользователь заблокировал бота")
                 # Не пробрасываем исключение дальше
                 return None
+
+            except TelegramBadRequest as e:
+                # Обработка обычных Telegram ошибок (не критичные)
+                await session.rollback()
+                error_message = str(e)
+
+                # Эти ошибки ожидаемы и не критичны - логируем как debug
+                if any(msg in error_message.lower() for msg in [
+                    "message is not modified",
+                    "query is too old",
+                    "message can't be edited",
+                    "message to edit not found"
+                ]):
+                    logger.debug(f"Некритичная Telegram ошибка: {error_message}")
+                    return None
+                else:
+                    # Остальные BadRequest логируем как warning
+                    logger.warning(f"Telegram BadRequest: {error_message}")
+                    raise
 
             except Exception as e:
                 # В случае ошибки откатываем транзакцию

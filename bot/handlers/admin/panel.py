@@ -35,6 +35,8 @@ async def callback_admin_panel(callback: CallbackQuery):
     """
     Обработчик возврата в главную админ-панель
     """
+    logger.info(f"Админ {callback.from_user.id} вернулся в главную админ-панель")
+
     await callback.message.edit_text(
         text=admin_messages.ADMIN_PANEL_WELCOME,
         reply_markup=get_admin_main_menu()
@@ -45,12 +47,12 @@ async def callback_admin_panel(callback: CallbackQuery):
 @router.callback_query(F.data == "admin:products", IsAdminFilter())
 async def callback_admin_products(callback: CallbackQuery):
     """
-    Обработчик перехода в управление товарами (будет реализовано в Этапе 9)
+    Обработчик перехода в управление товарами
+    Перенаправляет в products.py handler
     """
-    await callback.answer(
-        "Управление товарами будет реализовано в следующем этапе",
-        show_alert=True
-    )
+    # Этот handler больше не нужен, так как есть в products.py
+    # Оставлен для обратной совместимости, но не используется
+    pass
 
 
 @router.callback_query(F.data == "admin:orders", IsAdminFilter())
@@ -58,6 +60,8 @@ async def callback_admin_orders(callback: CallbackQuery):
     """
     Обработчик перехода в управление заказами (будет реализовано в Этапе 10)
     """
+    logger.info(f"Админ {callback.from_user.id} попытался открыть управление заказами (функция еще не реализована)")
+
     await callback.answer(
         "Управление заказами будет реализовано в следующем этапе",
         show_alert=True
@@ -69,6 +73,8 @@ async def callback_admin_stats(callback: CallbackQuery):
     """
     Обработчик перехода в статистику (опциональная функция)
     """
+    logger.info(f"Админ {callback.from_user.id} попытался открыть статистику (функция еще не реализована)")
+
     await callback.answer(
         "Статистика будет реализована позже",
         show_alert=True
